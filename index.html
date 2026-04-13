@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linux Coding Desktop</title>
+  <style>
+    :root {
+      --border: rgba(164, 177, 255, 0.18);
+      --line: rgba(146, 162, 230, 0.16);
+      --text: #d6dcff;
+      --accent: #b8db7c;
+      --amber: #eadb8d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 25% 18%, rgba(123, 136, 255, 0.18), transparent 28%),
+        radial-gradient(circle at 68% 72%, rgba(127, 255, 216, 0.12), transparent 24%),
+        linear-gradient(180deg, #05060c, #090a14 50%, #06070d);
+      color: var(--text);
+      font-family: Consolas, "Cascadia Mono", "Courier New", monospace;
+    }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .desktop-shell {
+      position: relative;
+      width: min(1380px, 100%);
+      min-height: 92vh;
+      padding: 18px 18px 72px;
+      border: 1px solid rgba(167, 181, 255, 0.12);
+      border-radius: 24px;
+      background:
+        linear-gradient(135deg, rgba(14, 16, 26, 0.95), rgba(7, 9, 16, 0.9)),
+        linear-gradient(90deg, transparent 49.7%, rgba(174, 191, 255, 0.06) 50%, transparent 50.3%);
+      box-shadow:
+        0 28px 60px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      overflow: hidden;
+    }
+
+    .lock-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(180deg, rgba(5, 6, 12, 0.42), rgba(5, 6, 12, 0.72)),
+        radial-gradient(circle at 50% 25%, rgba(129, 144, 255, 0.2), transparent 28%);
+      backdrop-filter: blur(18px);
+      transition: opacity 220ms ease, visibility 220ms ease;
+    }
+
+    .lock-screen.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .lock-card {
+      width: min(420px, 100%);
+      padding: 28px;
+      border: 1px solid rgba(189, 201, 255, 0.22);
+      border-radius: 24px;
+      background: rgba(12, 14, 24, 0.82);
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+      text-align: center;
+    }
+
+    .lock-avatar {
+      width: 88px;
+      height: 88px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 2rem;
+      color: #eef2ff;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(156, 176, 255, 0.48), transparent 35%),
+        linear-gradient(180deg, rgba(92, 110, 214, 0.78), rgba(36, 45, 95, 0.92));
+      border: 1px solid rgba(207, 216, 255, 0.2);
+    }
+
+    .lock-title {
+      margin: 0;
+      font-size: 1.4rem;
+      color: #f2f5ff;
+    }
+
+    .lock-subtitle {
+      margin: 8px 0 18px;
+      color: #b1badc;
+      font-size: 0.88rem;
+    }
+
+    .lock-time {
+      margin: 0 0 18px;
+      font-size: 2rem;
+      color: #ffffff;
+      letter-spacing: 0.08em;
+    }
+
+    .lock-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid rgba(172, 186, 255, 0.22);
+      border-radius: 14px;
+      background: rgba(7, 9, 16, 0.82);
+      color: #eef2ff;
+      outline: none;
+      font: inherit;
+    }
+
+    .lock-password-row {
+      display: grid;
+      grid-template-columns: 1fr 52px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .lock-eye {
+      height: 50px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(140, 161, 255, 0.95), rgba(88, 105, 205, 0.95));
+      color: #f1f4ff;
+      font: inherit;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .lock-input:focus {
+      border-color: rgba(222, 230, 255, 0.45);
+      box-shadow: 0 0 0 3px rgba(152, 172, 255, 0.12);
+    }
+
+    .lock-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .lock-button {
+      flex: 1;
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #8fb6ff, #5d73d2);
+      color: #eef3ff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .lock-hint {
+      margin-top: 14px;
+      min-height: 1.2em;
+      color: #ffb7ca;
+      font-size: 0.82rem;
+    }
+
+    .desktop-shell::before,
+    .desktop-shell::after {
+      content: "";
+      position: absolute;
+      inset: 56px 0 0;
+      background-image:
+        linear-gradient(rgba(141, 152, 210, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(141, 152, 210, 0.06) 1px, transparent 1px);
+      background-size: 140px 140px;
+      opacity: 0.12;
+      pointer-events: none;
+    }
+
+    .desktop-shell::after {
+      inset: auto 0 0;
+      height: 160px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255, 124, 162, 0.18), transparent 36%),
+        linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.52));
+    }
+
+    .wallpaper-glow {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: 0.18;
+      pointer-events: none;
+    }
+
+    .wallpaper-glow-left {
+      top: 16%;
+      left: -80px;
+      background: rgba(120, 96, 255, 0.6);
+    }
+
+    .wallpaper-glow-right {
+      right: -50px;
+      bottom: 12%;
+      background: rgba(102, 216, 255, 0.35);
+    }
+
+    .top-bar {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: rgba(10, 12, 22, 0.85);
+      font-size: 0.82rem;
+      color: #b8c0e8;
+    }
+
+    .top-bar__left,
+    .top-bar__right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand {
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #eef2ff;
+      font-weight: 700;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot-red { background: #ff6b88; }
+    .dot-yellow { background: #e1ca78; }
+    .dot-green { background: #72dfc2; }
+
+    .desktop-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.15fr 1.65fr;
+      grid-template-areas:
+        "monitor editor"
+        "network terminal"
+        ". chart"
+        "tux tux";
+      gap: 18px;
+      padding-top: 18px;
+    }
+
+    .window {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(28, 31, 50, 0.95), rgba(15, 18, 30, 0.92));
+      overflow: hidden;
+      box-shadow:
+        0 14px 36px rgba(0, 0, 0, 0.38),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .window__titlebar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(110, 118, 178, 0.2), rgba(31, 34, 54, 0.1));
+      color: #b3bbdf;
+      font-size: 0.78rem;
+      text-transform: lowercase;
+    }
+
+    .window__body {
+      padding: 14px;
+    }
+
+    .window-monitor { grid-area: monitor; }
+    .window-editor { grid-area: editor; min-height: 320px; }
+    .window-network { grid-area: network; }
+    .window-terminal { grid-area: terminal; margin-top: -62px; }
+    .window-chart { grid-area: chart; width: 58%; justify-self: end; margin-top: -118px; }
+    .window-tux { grid-area: tux; }
+
+    .meter-group {
+      display: grid;
+      gap: 10px;
+    }
+
+    .meter-row {
+      display: grid;
+      grid-template-columns: 40px 1fr 48px;
+      gap: 10px;
+      align-items: center;
+      color: #d5dbff;
+      font-size: 0.8rem;
+    }
+
+    .meter {
+      height: 12px;
+      border: 1px solid rgba(209, 233, 160, 0.22);
+      background: rgba(8, 11, 19, 0.85);
+      overflow: hidden;
+    }
+
+    .meter i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #88d46f, #d9ec90);
+    }
+
+    .meter-teal i {
+      background: linear-gradient(90deg, #67cbc2, #97e6de);
+    }
+
+    .meter-pink i {
+      background: linear-gradient(90deg, #aa74ff, #efb0ff);
+    }
+
+    .process-table {
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      font-size: 0.75rem;
+    }
+
+    .process-table__head,
+    .process-table__body {
+      display: grid;
+      grid-template-columns: 56px 66px 52px 52px 1fr;
+      gap: 8px;
+    }
+
+    .process-table__head {
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .process-table__body {
+      color: #cdd2ef;
+      row-gap: 6px;
+    }
+
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 180px 1fr 160px;
+      gap: 14px;
+      min-height: 280px;
+    }
+
+    .editor-tree {
+      padding-right: 14px;
+      border-right: 1px solid var(--line);
+      color: #b7bedf;
+      font-size: 0.78rem;
+      line-height: 1.85;
+    }
+
+    .tree-indent {
+      padding-left: 16px;
+    }
+
+    .is-active {
+      color: var(--amber);
+    }
+
+    .editor-code {
+      display: grid;
+      gap: 6px;
+    }
+
+    .code-line {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      align-items: center;
+      min-height: 22px;
+      color: #dce0f7;
+      font-size: 0.84rem;
+    }
+
+    .code-num {
+      color: #69719d;
+      text-align: right;
+    }
+
+    .code-text em {
+      color: #8ddcff;
+      font-style: normal;
+    }
+
+    .code-text b {
+      color: #eed98b;
+      font-weight: 600;
+    }
+
+    .code-line.is-highlight {
+      background: rgba(241, 215, 125, 0.08);
+      box-shadow: inset 3px 0 0 #e9d27e;
+    }
+
+    .editor-preview {
+      border-left: 1px solid var(--line);
+      padding-left: 14px;
+    }
+
+    .preview-box {
+      position: relative;
+      height: 100%;
+      min-height: 190px;
+      border: 1px solid rgba(155, 174, 255, 0.18);
+      background:
+        linear-gradient(180deg, rgba(20, 22, 34, 0.86), rgba(13, 15, 24, 0.96)),
+        radial-gradient(circle at 40% 35%, rgba(177, 190, 255, 0.08), transparent 24%);
+      overflow: hidden;
+    }
+
+    .preview-noise {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, transparent 38%, rgba(224, 231, 255, 0.05) 38.4%, transparent 39%),
+        linear-gradient(0deg, transparent 55%, rgba(213, 224, 255, 0.06) 56%, transparent 57%);
+      opacity: 0.9;
+    }
+
+    .preview-frame {
+      position: absolute;
+      inset: 16px;
+      border: 1px solid rgba(199, 209, 255, 0.16);
+      background:
+        linear-gradient(180deg, rgba(204, 212, 255, 0.05), transparent),
+        radial-gradient(circle at 62% 42%, rgba(240, 245, 255, 0.2), transparent 28%);
+      filter: grayscale(1) contrast(1.1);
+    }
+
+    .network-panel {
+      position: relative;
+      min-height: 166px;
+    }
+
+    .network-grid {
+      position: absolute;
+      inset: 14px;
+      background:
+        radial-gradient(circle at 18% 72%, rgba(132, 223, 255, 0.62) 0 2px, transparent 3px),
+        radial-gradient(circle at 64% 26%, rgba(230, 214, 127, 0.58) 0 2px, transparent 3px),
+        radial-gradient(circle at 78% 62%, rgba(155, 132, 255, 0.58) 0 2px, transparent 3px);
+    }
+
+    .network-grid::before,
+    .network-grid::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+    }
+
+    .network-grid::before {
+      background:
+        linear-gradient(35deg, transparent 49.4%, rgba(120, 195, 255, 0.18) 50%, transparent 50.6%),
+        linear-gradient(130deg, transparent 49.6%, rgba(214, 220, 255, 0.16) 50%, transparent 50.4%);
+      opacity: 0.7;
+    }
+
+    .network-grid::after {
+      background:
+        radial-gradient(circle at 16% 70%, rgba(126, 210, 255, 0.18), transparent 18%),
+        radial-gradient(circle at 68% 24%, rgba(241, 221, 140, 0.12), transparent 14%);
+    }
+
+    .network-text {
+      position: relative;
+      z-index: 1;
+      width: max-content;
+      margin-left: auto;
+      background: rgba(11, 14, 24, 0.72);
+      padding: 10px 12px;
+      border: 1px solid rgba(154, 173, 255, 0.14);
+      color: #d5ddff;
+      font-size: 0.77rem;
+      line-height: 1.4;
+    }
+
+    .network-text p {
+      margin: 0;
+    }
+
+    .terminal {
+      min-height: 140px;
+      color: #cfd7fb;
+      font-size: 0.8rem;
+      line-height: 1.6;
+    }
+
+    .terminal-line {
+      white-space: nowrap;
+    }
+
+    .prompt {
+      color: #95de7c;
+    }
+
+    .path {
+      color: #83dcff;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 1.05em;
+      transform: translateY(2px);
+      background: #e7d88e;
+      animation: blink 1s steps(1) infinite;
+    }
+
+    .chart-bars {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 8px;
+      align-items: end;
+      min-height: 160px;
+    }
+
+    .chart-bars span {
+      border-radius: 999px 999px 0 0;
+      background: linear-gradient(180deg, #c49cff, #7ddcff 52%, #98f1d8);
+      box-shadow: 0 0 18px rgba(141, 217, 255, 0.16);
+      animation: pulse 5s ease-in-out infinite;
+    }
+
+    .chart-bars span:nth-child(3n) {
+      animation-delay: 0.4s;
+    }
+
+    .chart-bars span:nth-child(4n) {
+      animation-delay: 0.8s;
+    }
+
+    .dock {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid rgba(176, 191, 255, 0.16);
+      border-radius: 999px;
+      background: rgba(13, 16, 26, 0.82);
+    }
+
+    .dock__item {
+      min-width: 16px;
+      height: 34px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #9db4ff, #6d7ccc);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+      color: #eef3ff;
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .dock__item--wide {
+      min-width: 82px;
+      border-radius: 6px;
+    }
+
+    .dock__item.is-live {
+      background: linear-gradient(180deg, #8edb7b, #5aaf67);
+    }
+
+    .tux-lab {
+      display: grid;
+      grid-template-columns: 1.05fr 1.25fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .tux-card {
+      display: grid;
+      gap: 14px;
+    }
+
+    .tux-stage {
+      position: relative;
+      min-height: 420px;
+      padding: 18px;
+      border: 1px solid rgba(185, 196, 255, 0.15);
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 50% 22%, rgba(133, 150, 255, 0.16), transparent 28%),
+        linear-gradient(180deg, rgba(14, 17, 30, 0.96), rgba(8, 10, 20, 0.98));
+      overflow: hidden;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+        0 16px 28px rgba(0, 0, 0, 0.24);
+    }
+
+    .tux-stage::after {
+      content: "";
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      bottom: 24px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.35);
+      filter: blur(12px);
+    }
+
+    .speech-bubble {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      max-width: 210px;
+      padding: 14px 16px;
+      border: 1px solid rgba(201, 210, 255, 0.18);
+      border-radius: 18px 18px 4px 18px;
+      background: rgba(15, 18, 30, 0.88);
+      color: #f4f6ff;
+      font-size: 0.84rem;
+      line-height: 1.5;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+    }
+
+    .speech-bubble strong {
+      color: #f0da89;
+    }
+
+    .penguin-wrap {
+      position: relative;
+      width: min(320px, 100%);
+      margin: 60px auto 0;
+      z-index: 1;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .penguin-pet {
+      position: absolute;
+      right: -54px;
+      bottom: 28px;
+      width: 110px;
+      padding: 6px;
+      border-radius: 20px;
+      background: rgba(17, 20, 33, 0.92);
+      border: 1px solid rgba(185, 196, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 16px 24px rgba(0, 0, 0, 0.22);
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .penguin-pet img {
+      width: 100%;
+      display: block;
+      border-radius: 14px;
+      background: #fff;
+    }
+
+    .penguin-pet-label {
+      margin-top: 6px;
+      text-align: center;
+      color: #dfe6ff;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .penguin-pet.is-dragging {
+      cursor: grabbing;
+      box-shadow: 0 20px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .penguin-photo {
+      width: 100%;
+      display: block;
+      border-radius: 32px;
+      background: #fff;
+      border: 8px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 22px 36px rgba(0, 0, 0, 0.28);
+    }
+
+    .penguin-wrap.is-dragging {
+      cursor: grabbing;
+    }
+
+    .penguin-hat,
+    .penguin-shirt {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .penguin-hat {
+      top: 22px;
+      width: 108px;
+      height: 44px;
+      border-radius: 56px 56px 18px 18px;
+      background: linear-gradient(180deg, #ff7c7c, #b32d2d);
+      border: 3px solid rgba(255, 238, 204, 0.9);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+    }
+
+    .penguin-hat::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: -13px;
+      width: 22px;
+      height: 22px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: #ffe8be;
+    }
+
+    .penguin-shirt {
+      bottom: 114px;
+      width: 124px;
+      height: 58px;
+      border-radius: 22px 22px 28px 28px;
+      background: linear-gradient(180deg, #6fd58f, #2d8e56);
+      border: 3px solid rgba(215, 255, 224, 0.78);
+      box-shadow: 0 14px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .penguin-shirt::before,
+    .penguin-shirt::after {
+      content: "";
+      position: absolute;
+      top: 6px;
+      width: 24px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(13, 28, 16, 0.25);
+    }
+
+    .penguin-shirt::before { left: -7px; transform: rotate(30deg); }
+    .penguin-shirt::after { right: -7px; transform: rotate(-30deg); }
+
+    .penguin-hat.is-on,
+    .penguin-shirt.is-on {
+      display: block;
+    }
+
+    .tux-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .stat-card {
+      padding: 12px;
+      border: 1px solid rgba(178, 192, 255, 0.14);
+      border-radius: 16px;
+      background: rgba(11, 14, 24, 0.82);
+    }
+
+    .stat-label {
+      color: #98a2c7;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      margin-top: 6px;
+      color: #f2f5ff;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .mini-panel {
+      padding: 16px;
+      border: 1px solid rgba(185, 196, 255, 0.15);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(15, 18, 32, 0.9), rgba(10, 12, 22, 0.92));
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .mini-panel h3 {
+      margin: 0 0 10px;
+      color: #f1f4ff;
+      font-size: 1rem;
+    }
+
+    .mini-panel p {
+      margin: 0 0 12px;
+      color: #aab3d8;
+      font-size: 0.84rem;
+      line-height: 1.5;
+    }
+
+    .code-challenge {
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(5, 7, 14, 0.92);
+      color: #8fe08b;
+      font-size: 0.86rem;
+      overflow-x: auto;
+      border: 1px solid rgba(120, 222, 140, 0.1);
+    }
+
+    .game-input,
+    .shop-button,
+    .run-button {
+      font: inherit;
+    }
+
+    .game-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(176, 192, 255, 0.18);
+      border-radius: 12px;
+      background: rgba(5, 7, 14, 0.9);
+      color: #f4f6ff;
+      outline: none;
+    }
+
+    .run-button {
+      margin-top: 10px;
+      width: 100%;
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #89e28f, #399f5f);
+      color: #08100c;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .game-log {
+      margin-top: 12px;
+      min-height: 72px;
+      color: #ffd9a6;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .linux-stamp {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 10px;
+      padding: 6px 10px;
+      border: 1px solid rgba(144, 230, 160, 0.25);
+      border-radius: 999px;
+      background: rgba(27, 88, 47, 0.24);
+      color: #9bf1a6;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .linux-stamp.is-on {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .shop-items {
+      display: grid;
+      gap: 12px;
+    }
+
+    .shop-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(17, 20, 33, 0.9);
+      border: 1px solid rgba(179, 190, 255, 0.12);
+    }
+
+    .shop-meta strong {
+      display: block;
+      color: #f0f4ff;
+      margin-bottom: 4px;
+    }
+
+    .shop-meta span {
+      color: #98a2c7;
+      font-size: 0.8rem;
+    }
+
+    .shop-button {
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffde81, #dfa92a);
+      color: #2f2000;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .shop-button.is-owned {
+      background: linear-gradient(180deg, #91b8ff, #5971d4);
+      color: #eef3ff;
+    }
+
+    .shop-note {
+      margin-top: 12px;
+      min-height: 20px;
+      color: #8fdcff;
+      font-size: 0.82rem;
+    }
+
+    .pet-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .pet-button {
+      flex: 1;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #8eb4ff, #596fd3);
+      color: #eef3ff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .app-window {
+      position: absolute;
+      z-index: 6;
+      display: none;
+      width: min(420px, calc(100% - 36px));
+      border: 1px solid rgba(185, 196, 255, 0.18);
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(14, 17, 28, 0.97);
+      box-shadow: 0 22px 40px rgba(0, 0, 0, 0.36);
+    }
+
+    .app-window.is-open {
+      display: block;
+    }
+
+    .app-window--roblox {
+      top: 90px;
+      right: 34px;
+    }
+
+    .app-window--spotify {
+      top: 140px;
+      left: 60px;
+    }
+
+    .app-window--discord {
+      top: 240px;
+      right: 120px;
+    }
+
+    .app-window__title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(23, 27, 42, 0.96);
+      border-bottom: 1px solid rgba(175, 188, 255, 0.14);
+      color: #eef2ff;
+      font-size: 0.82rem;
+    }
+
+    .app-window__close {
+      border: 0;
+      border-radius: 10px;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #eef2ff;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .dock__item:hover,
+    .lock-button:hover,
+    .run-button:hover,
+    .shop-button:hover,
+    .app-window__close:hover {
+      filter: brightness(1.06);
+    }
+
+    .scroll-controls {
+      position: fixed;
+      right: 18px;
+      bottom: 22px;
+      z-index: 30;
+      display: grid;
+      gap: 10px;
+    }
+
+    .scroll-button {
+      width: 52px;
+      height: 52px;
+      border: 0;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(145, 166, 255, 0.95), rgba(93, 111, 210, 0.95));
+      color: #f4f7ff;
+      font: inherit;
+      font-size: 1.1rem;
+      font-weight: 700;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+      cursor: pointer;
+    }
+
+    .app-window__body {
+      padding: 16px;
+    }
+
+    .roblox-card,
+    .spotify-card,
+    .discord-card {
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .roblox-card {
+      background: linear-gradient(180deg, rgba(39, 43, 60, 0.98), rgba(18, 20, 30, 0.98));
+    }
+
+    .roblox-play {
+      margin-top: 12px;
+      padding: 12px 14px;
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ffffff, #bfc6e6);
+      color: #101319;
+      font: inherit;
+      font-weight: 700;
+    }
+
+    .spotify-card {
+      background: linear-gradient(180deg, rgba(16, 53, 33, 0.98), rgba(10, 16, 12, 0.98));
+    }
+
+    .spotify-song {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #eef8f1;
+    }
+
+    .spotify-song strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .spotify-bar {
+      margin-top: 12px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+    }
+
+    .spotify-bar span {
+      display: block;
+      width: 62%;
+      height: 100%;
+      background: #45e07a;
+    }
+
+    .discord-card {
+      background: linear-gradient(180deg, rgba(67, 77, 144, 0.98), rgba(35, 39, 63, 0.98));
+    }
+
+    .discord-message {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #eef2ff;
+      font-size: 0.84rem;
+      line-height: 1.45;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes pulse {
+      50% {
+        filter: brightness(1.14);
+      }
+    }
+
+    @media (max-width: 1100px) {
+      body {
+        padding: 12px;
+      }
+
+      .desktop-shell {
+        min-height: auto;
+        padding-bottom: 84px;
+      }
+
+      .desktop-grid {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "monitor"
+          "editor"
+          "network"
+          "terminal"
+          "chart";
+      }
+
+      .window-terminal,
+      .window-chart {
+        margin-top: 0;
+        width: 100%;
+        justify-self: stretch;
+      }
+
+      .editor-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .tux-lab,
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .penguin-pet {
+        right: 8px;
+        bottom: 10px;
+        width: 74px;
+      }
+
+      .editor-tree,
+      .editor-preview {
+        border: 0;
+        padding: 0;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .top-bar,
+      .window__titlebar {
+        font-size: 0.7rem;
+      }
+
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .top-bar__right {
+        flex-wrap: wrap;
+      }
+
+      .process-table__head,
+      .process-table__body {
+        grid-template-columns: repeat(4, minmax(0, auto)) 1fr;
+        font-size: 0.68rem;
+      }
+
+      .tux-stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="desktop-shell">
+    <div class="lock-screen" id="lock-screen">
+      <div class="lock-card">
+        <div class="lock-avatar">L</div>
+        <p class="lock-time" id="lock-time">17:44</p>
+        <h1 class="lock-title">linux</h1>
+        <p class="lock-subtitle">Enter password to unlock your coding desktop</p>
+        <div class="lock-password-row">
+          <input class="lock-input" id="lock-password" type="password" placeholder="Password" autocomplete="off">
+          <button class="lock-eye" id="toggle-password" type="button">👁</button>
+        </div>
+        <div class="lock-actions">
+          <button class="lock-button" id="unlock-button" type="button">Unlock</button>
+        </div>
+        <div class="lock-hint" id="lock-hint"></div>
+      </div>
+    </div>
+
+    <div class="wallpaper-glow wallpaper-glow-left"></div>
+    <div class="wallpaper-glow wallpaper-glow-right"></div>
+
+    <header class="top-bar">
+      <div class="top-bar__left">
+        <span class="dot dot-red"></span>
+        <span class="dot dot-yellow"></span>
+        <span class="dot dot-green"></span>
+        <span class="brand">arch@workstation</span>
+      </div>
+      <div class="top-bar__center">Sun Apr 12 17:44</div>
+      <div class="top-bar__right">
+        <span>LAN: connected</span>
+        <span>CPU 31%</span>
+        <span>RAM 6.8G</span>
+      </div>
+    </header>
+
+    <main class="desktop-grid">
+      <section class="window window-monitor">
+        <div class="window__titlebar">
+          <span>system monitor</span>
+          <span>htop</span>
+        </div>
+        <div class="window__body">
+          <div class="meter-group">
+            <div class="meter-row">
+              <span>cpu</span>
+              <div class="meter"><i style="width: 74%"></i></div>
+              <strong>74%</strong>
+            </div>
+            <div class="meter-row">
+              <span>mem</span>
+              <div class="meter meter-teal"><i style="width: 58%"></i></div>
+              <strong>58%</strong>
+            </div>
+            <div class="meter-row">
+              <span>swap</span>
+              <div class="meter meter-pink"><i style="width: 19%"></i></div>
+              <strong>19%</strong>
+            </div>
+          </div>
+
+          <div class="process-table">
+            <div class="process-table__head">
+              <span>PID</span>
+              <span>USER</span>
+              <span>CPU%</span>
+              <span>MEM%</span>
+              <span>COMMAND</span>
+            </div>
+            <div class="process-table__body">
+              <span>1142</span><span>root</span><span>3.4</span><span>1.2</span><span>kwin_x11</span>
+              <span>2019</span><span>alex</span><span>12.1</span><span>4.8</span><span>code</span>
+              <span>2201</span><span>alex</span><span>8.2</span><span>2.1</span><span>alacritty</span>
+              <span>2508</span><span>alex</span><span>24.2</span><span>8.4</span><span>node server.js</span>
+              <span>2664</span><span>alex</span><span>14.6</span><span>3.2</span><span>python train.py</span>
+              <span>3002</span><span>postgres</span><span>2.9</span><span>1.1</span><span>postgres</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="window window-editor">
+        <div class="window__titlebar">
+          <span>~/dev/portfolio</span>
+          <span>nvim</span>
+        </div>
+        <div class="window__body editor-layout">
+          <aside class="editor-tree">
+            <div>src</div>
+            <div class="tree-indent">components</div>
+            <div class="tree-indent is-active">Dashboard.tsx</div>
+            <div class="tree-indent">Terminal.tsx</div>
+            <div class="tree-indent">Chart.tsx</div>
+            <div>public</div>
+            <div class="tree-indent">wallpaper.png</div>
+            <div>package.json</div>
+          </aside>
+          <div class="editor-code">
+            <div class="code-line"><span class="code-num">1</span><span class="code-text"><em>import</em> { charts, sessions } <em>from</em> <b>"./data"</b>;</span></div>
+            <div class="code-line"><span class="code-num">2</span><span class="code-text"><em>export</em> <em>function</em> <b>Dashboard</b>() {</span></div>
+            <div class="code-line"><span class="code-num">3</span><span class="code-text">  <em>const</em> activePane = <b>"editor"</b>;</span></div>
+            <div class="code-line"><span class="code-num">4</span><span class="code-text">  <em>const</em> buildState = <b>"passing"</b>;</span></div>
+            <div class="code-line"><span class="code-num">5</span><span class="code-text">  <em>return</em> (</span></div>
+            <div class="code-line"><span class="code-num">6</span><span class="code-text">    &lt;section className=<b>"shell"</b>&gt;</span></div>
+            <div class="code-line is-highlight"><span class="code-num">7</span><span class="code-text">      &lt;Terminal logs={<b>sessions</b>} active={<b>activePane</b>} /&gt;</span></div>
+            <div class="code-line"><span class="code-num">8</span><span class="code-text">      &lt;Graph values={<b>charts</b>} status={<b>buildState</b>} /&gt;</span></div>
+            <div class="code-line"><span class="code-num">9</span><span class="code-text">    &lt;/section&gt;</span></div>
+            <div class="code-line"><span class="code-num">10</span><span class="code-text">  );</span></div>
+            <div class="code-line"><span class="code-num">11</span><span class="code-text">}</span></div>
+          </div>
+          <div class="editor-preview">
+            <div class="preview-box">
+              <div class="preview-noise"></div>
+              <div class="preview-frame"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="window window-network">
+        <div class="window__titlebar">
+          <span>network map</span>
+          <span>glances</span>
+        </div>
+        <div class="window__body network-panel">
+          <div class="network-grid"></div>
+          <div class="network-text">
+            <p>latency: 8.3ms</p>
+            <p>upload: 18.1 mb/s</p>
+            <p>download: 92.7 mb/s</p>
+            <p>docker: 6 containers alive</p>
+            <p>ssh sessions: 2</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="window window-terminal">
+        <div class="window__titlebar">
+          <span>terminal</span>
+          <span>zsh</span>
+        </div>
+        <div class="window__body terminal">
+          <div class="terminal-line"><span class="prompt">alex@linux</span>:<span class="path">~/dev/api</span>$ npm run dev</div>
+          <div class="terminal-line">vite v7.1 ready in 421ms</div>
+          <div class="terminal-line">local: http://localhost:5173</div>
+          <div class="terminal-line">watching for changes...</div>
+          <div class="terminal-line">GET /dashboard 200 18ms</div>
+          <div class="terminal-line">GET /assets/main.css 200 3ms</div>
+          <div class="terminal-line">POST /api/session 201 27ms</div>
+          <div class="terminal-line"><span class="prompt">alex@linux</span>:<span class="path">~/dev/api</span>$ <span id="typing-text"></span><span class="cursor"></span></div>
+        </div>
+      </section>
+
+      <section class="window window-chart">
+        <div class="window__titlebar">
+          <span>build analytics</span>
+          <span>grafana</span>
+        </div>
+        <div class="window__body">
+          <div class="chart-bars" aria-label="Build analytics chart">
+            <span style="height: 40%"></span>
+            <span style="height: 58%"></span>
+            <span style="height: 73%"></span>
+            <span style="height: 52%"></span>
+            <span style="height: 47%"></span>
+            <span style="height: 65%"></span>
+            <span style="height: 83%"></span>
+            <span style="height: 55%"></span>
+            <span style="height: 91%"></span>
+            <span style="height: 36%"></span>
+            <span style="height: 50%"></span>
+            <span style="height: 68%"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="window window-tux">
+        <div class="window__titlebar">
+          <span>tux control center</span>
+          <span>linux is the best</span>
+        </div>
+        <div class="window__body tux-lab">
+          <div class="tux-card">
+            <div class="tux-stage">
+              <div class="speech-bubble">
+                <strong>Linux is the best.</strong><br>
+                Fast for coding, fun for learning, and now Tux wants gold from the mines.
+              </div>
+              <div class="penguin-wrap">
+                <div class="penguin-hat" id="penguin-hat"></div>
+                <div class="penguin-shirt" id="penguin-shirt"></div>
+                <img class="penguin-photo" src="file:///C:/Users/a/Pictures/Screenshots/Screenshot%202026-04-11%20144339.png" alt="Penguin mascot">
+                <div class="penguin-pet">
+                  <img src="file:///C:/Users/a/Pictures/Screenshots/Screenshot%202026-04-09%20095619.png" alt="Little penguin pet">
+                  <div class="penguin-pet-label">Pet</div>
+                </div>
+              </div>
+            </div>
+            <div class="tux-stats">
+              <div class="stat-card">
+                <div class="stat-label">Coins</div>
+                <div class="stat-value" id="coin-count">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Ore</div>
+                <div class="stat-value" id="ore-count">0</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Style</div>
+                <div class="stat-value" id="style-count">0/2</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-grid">
+            <div class="mini-panel">
+              <h3>Mining Game</h3>
+              <p>Type the right code command to mine ore. Each correct run gives Tux more coins for the shop.</p>
+              <div class="code-challenge" id="challenge-text">mine linux --ore=gold</div>
+              <input class="game-input" id="code-input" type="text" placeholder="Type the command here">
+              <button class="run-button" id="run-code" type="button">Run Code</button>
+              <div class="game-log" id="game-log">
+                <div id="game-log-text">Enter the command exactly to start mining.</div>
+                <div class="linux-stamp" id="linux-stamp">LINUX</div>
+              </div>
+            </div>
+
+            <div class="mini-panel">
+              <h3>Penguin Shop</h3>
+              <p>Spend your mined coins on Tux gear, then equip it on the penguin.</p>
+              <div class="shop-items">
+                <div class="shop-item">
+                  <div class="shop-meta">
+                    <strong>Coder Hat</strong>
+                    <span>Cost: 20 coins</span>
+                  </div>
+                  <button class="shop-button" id="hat-button" type="button">Buy Hat</button>
+                </div>
+                <div class="shop-item">
+                  <div class="shop-meta">
+                    <strong>Linux Shirt</strong>
+                    <span>Cost: 35 coins</span>
+                  </div>
+                  <button class="shop-button" id="shirt-button" type="button">Buy Shirt</button>
+                </div>
+              </div>
+              <div class="shop-note" id="shop-note">Mine coins, then dress up Tux. You can drag the pet too.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="dock">
+      <button class="dock__item is-live" id="open-terminal" type="button">Term</button>
+      <button class="dock__item" id="open-roblox" type="button">Roblox</button>
+      <button class="dock__item" id="open-spotify" type="button">Spotify</button>
+      <button class="dock__item" id="open-discord" type="button">Discord</button>
+      <button class="dock__item dock__item--wide" id="show-tux" type="button">Tux Lab</button>
+    </footer>
+
+    <section class="app-window app-window--roblox" id="roblox-window">
+      <div class="app-window__title">
+        <span>roblox.desktop</span>
+        <button class="app-window__close" data-close="roblox-window" type="button">x</button>
+      </div>
+      <div class="app-window__body">
+        <div class="roblox-card">
+          <strong>Roblox Launcher</strong>
+          <p>Friends online: 4</p>
+          <p>Game mode: Linux Obby</p>
+          <button class="roblox-play" type="button">Play Roblox</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-window app-window--spotify" id="spotify-window">
+      <div class="app-window__title">
+        <span>spotify.desktop</span>
+        <button class="app-window__close" data-close="spotify-window" type="button">x</button>
+      </div>
+      <div class="app-window__body">
+        <div class="spotify-card">
+          <div class="spotify-song">
+            <strong>Now Playing</strong>
+            Linux Is the Best Mix
+          </div>
+          <div class="spotify-bar"><span></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-window app-window--discord" id="discord-window">
+      <div class="app-window__title">
+        <span>discord.desktop</span>
+        <button class="app-window__close" data-close="discord-window" type="button">x</button>
+      </div>
+      <div class="app-window__body">
+        <div class="discord-card">
+          <strong>Tux Coders</strong>
+          <div class="discord-message">alex: linux is the best</div>
+          <div class="discord-message">tux-bot: mine some ore and buy a hat</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="scroll-controls">
+    <button class="scroll-button" id="scroll-up" type="button">↑</button>
+    <button class="scroll-button" id="scroll-down" type="button">↓</button>
+  </div>
+
+  <script>
+    const commands = [
+      "pnpm test",
+      "git status",
+      "docker compose ps",
+      "npm run build",
+      "tail -f logs/dev.log"
+    ];
+
+    const typingTarget = document.getElementById("typing-text");
+    const lockScreen = document.getElementById("lock-screen");
+    const lockPassword = document.getElementById("lock-password");
+    const unlockButton = document.getElementById("unlock-button");
+    const togglePassword = document.getElementById("toggle-password");
+    const lockHint = document.getElementById("lock-hint");
+    const lockTime = document.getElementById("lock-time");
+    const coinCount = document.getElementById("coin-count");
+    const oreCount = document.getElementById("ore-count");
+    const styleCount = document.getElementById("style-count");
+    const codeInput = document.getElementById("code-input");
+    const runCode = document.getElementById("run-code");
+    const gameLog = document.getElementById("game-log");
+    const gameLogText = document.getElementById("game-log-text");
+    const challengeText = document.getElementById("challenge-text");
+    const hatButton = document.getElementById("hat-button");
+    const shirtButton = document.getElementById("shirt-button");
+    const shopNote = document.getElementById("shop-note");
+    const penguinWrap = document.querySelector(".penguin-wrap");
+    const penguinHat = document.getElementById("penguin-hat");
+    const penguinShirt = document.getElementById("penguin-shirt");
+    const penguinPet = document.querySelector(".penguin-pet");
+    const linuxStamp = document.getElementById("linux-stamp");
+    const openRoblox = document.getElementById("open-roblox");
+    const openSpotify = document.getElementById("open-spotify");
+    const openDiscord = document.getElementById("open-discord");
+    const openTerminal = document.getElementById("open-terminal");
+    const showTux = document.getElementById("show-tux");
+    const robloxWindow = document.getElementById("roblox-window");
+    const spotifyWindow = document.getElementById("spotify-window");
+    const discordWindow = document.getElementById("discord-window");
+    const scrollUpButton = document.getElementById("scroll-up");
+    const scrollDownButton = document.getElementById("scroll-down");
+    const closeButtons = document.querySelectorAll("[data-close]");
+    const challenges = [
+      { text: "mine linux --ore=gold", coins: 12, ore: 1 },
+      { text: "sudo mine --target kernel-rock", coins: 18, ore: 2 },
+      { text: "grep -R 'ore' /linux/cave", coins: 10, ore: 1 },
+      { text: "./miner --penguin tux --reward=coins", coins: 15, ore: 2 }
+    ];
+    let challengeIndex = 0;
+    const gameState = {
+      coins: 0,
+      ore: 0,
+      hatOwned: false,
+      shirtOwned: false,
+      hatOn: false,
+      shirtOn: false
+    };
+
+    function updateGameUi() {
+      coinCount.textContent = String(gameState.coins);
+      oreCount.textContent = String(gameState.ore);
+      styleCount.textContent = `${Number(gameState.hatOwned) + Number(gameState.shirtOwned)}/2`;
+
+      hatButton.textContent = gameState.hatOwned ? (gameState.hatOn ? "Hat On" : "Wear Hat") : "Buy Hat";
+      shirtButton.textContent = gameState.shirtOwned ? (gameState.shirtOn ? "Shirt On" : "Wear Shirt") : "Buy Shirt";
+      hatButton.classList.toggle("is-owned", gameState.hatOwned);
+      shirtButton.classList.toggle("is-owned", gameState.shirtOwned);
+      penguinHat.classList.toggle("is-on", gameState.hatOn);
+      penguinShirt.classList.toggle("is-on", gameState.shirtOn);
+      challengeText.textContent = challenges[challengeIndex].text;
+    }
+
+    function nextChallenge() {
+      challengeIndex = (challengeIndex + 1) % challenges.length;
+      challengeText.textContent = challenges[challengeIndex].text;
+      codeInput.value = "";
+    }
+
+    function runMiningCode() {
+      const current = challenges[challengeIndex];
+      const value = codeInput.value.trim();
+
+      if (value === current.text) {
+        gameState.coins += current.coins;
+        gameState.ore += current.ore;
+        gameLogText.textContent = `Success. Tux mined ${current.ore} ore and earned ${current.coins} coins. linux`;
+        linuxStamp.classList.add("is-on");
+        nextChallenge();
+        updateGameUi();
+      } else {
+        gameLogText.textContent = "That code did not work. Type the command exactly like the challenge.";
+        linuxStamp.classList.remove("is-on");
+      }
+    }
+
+    function toggleShopItem(item) {
+      if (item === "hat") {
+        if (!gameState.hatOwned) {
+          if (gameState.coins < 20) {
+            shopNote.textContent = "You need 20 coins for the coder hat.";
+            return;
+          }
+
+          gameState.coins -= 20;
+          gameState.hatOwned = true;
+        }
+
+        gameState.hatOn = !gameState.hatOn;
+        shopNote.textContent = gameState.hatOn ? "Coder hat equipped." : "Coder hat removed.";
+      }
+
+      if (item === "shirt") {
+        if (!gameState.shirtOwned) {
+          if (gameState.coins < 35) {
+            shopNote.textContent = "You need 35 coins for the Linux shirt.";
+            return;
+          }
+
+          gameState.coins -= 35;
+          gameState.shirtOwned = true;
+        }
+
+        gameState.shirtOn = !gameState.shirtOn;
+        shopNote.textContent = gameState.shirtOn ? "Linux shirt equipped." : "Linux shirt removed.";
+      }
+
+      updateGameUi();
+    }
+
+    function enablePetDrag() {
+      if (!penguinPet) {
+        return;
+      }
+
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let baseX = 0;
+      let baseY = 0;
+
+      function updatePosition() {
+        penguinPet.style.transform = `translate(${baseX}px, ${baseY}px)`;
+      }
+
+      penguinPet.addEventListener("pointerdown", (event) => {
+        dragging = true;
+        startX = event.clientX - baseX;
+        startY = event.clientY - baseY;
+        penguinPet.classList.add("is-dragging");
+        penguinPet.setPointerCapture(event.pointerId);
+        shopNote.textContent = "Dragging pet penguin.";
+      });
+
+      penguinPet.addEventListener("pointermove", (event) => {
+        if (!dragging) {
+          return;
+        }
+
+        baseX = event.clientX - startX;
+        baseY = event.clientY - startY;
+        updatePosition();
+      });
+
+      function stopDragging() {
+        if (!dragging) {
+          return;
+        }
+
+        dragging = false;
+        penguinPet.classList.remove("is-dragging");
+        shopNote.textContent = "Pet moved.";
+      }
+
+      penguinPet.addEventListener("pointerup", stopDragging);
+      penguinPet.addEventListener("pointercancel", stopDragging);
+    }
+
+    function enableMainPenguinDrag() {
+      if (!penguinWrap) {
+        return;
+      }
+
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let baseX = 0;
+      let baseY = 0;
+
+      function updatePosition() {
+        penguinWrap.style.transform = `translate(${baseX}px, ${baseY}px)`;
+      }
+
+      penguinWrap.addEventListener("pointerdown", (event) => {
+        if (event.target.closest(".penguin-pet")) {
+          return;
+        }
+
+        dragging = true;
+        startX = event.clientX - baseX;
+        startY = event.clientY - baseY;
+        penguinWrap.classList.add("is-dragging");
+        penguinWrap.setPointerCapture(event.pointerId);
+        shopNote.textContent = "Dragging big penguin.";
+      });
+
+      penguinWrap.addEventListener("pointermove", (event) => {
+        if (!dragging) {
+          return;
+        }
+
+        baseX = event.clientX - startX;
+        baseY = event.clientY - startY;
+        updatePosition();
+      });
+
+      function stopDragging() {
+        if (!dragging) {
+          return;
+        }
+
+        dragging = false;
+        penguinWrap.classList.remove("is-dragging");
+        shopNote.textContent = "Big penguin moved.";
+      }
+
+      penguinWrap.addEventListener("pointerup", stopDragging);
+      penguinWrap.addEventListener("pointercancel", stopDragging);
+    }
+
+    function openWindow(windowEl) {
+      if (windowEl) {
+        windowEl.classList.add("is-open");
+      }
+    }
+
+    function launchApp(url, windowEl) {
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+
+      openWindow(windowEl);
+    }
+
+    function closeWindow(windowId) {
+      const windowEl = document.getElementById(windowId);
+      if (windowEl) {
+        windowEl.classList.remove("is-open");
+      }
+    }
+
+    function scrollPage(direction) {
+      window.scrollBy({
+        top: direction * Math.max(window.innerHeight * 0.7, 360),
+        behavior: "smooth"
+      });
+    }
+
+    function updateLockTime() {
+      const now = new Date();
+      lockTime.textContent = now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+    }
+
+    function tryUnlock() {
+      if (!lockPassword) {
+        return;
+      }
+
+      if (lockPassword.value === "linux is the best") {
+        lockScreen.classList.add("is-hidden");
+        lockHint.textContent = "";
+      } else {
+        lockHint.textContent = "Wrong password. Try again.";
+        lockPassword.select();
+      }
+    }
+
+    if (typingTarget) {
+      let commandIndex = 0;
+      let charIndex = 0;
+      let deleting = false;
+
+      function tick() {
+        const current = commands[commandIndex];
+
+        if (!deleting) {
+          typingTarget.textContent = current.slice(0, charIndex + 1);
+          charIndex += 1;
+
+          if (charIndex === current.length) {
+            deleting = true;
+            setTimeout(tick, 1100);
+            return;
+          }
+        } else {
+          typingTarget.textContent = current.slice(0, Math.max(charIndex - 1, 0));
+          charIndex -= 1;
+
+          if (charIndex === 0) {
+            deleting = false;
+            commandIndex = (commandIndex + 1) % commands.length;
+          }
+        }
+
+        setTimeout(tick, deleting ? 45 : 90);
+      }
+
+      tick();
+    }
+
+    if (lockTime) {
+      updateLockTime();
+      setInterval(updateLockTime, 1000);
+    }
+
+    if (unlockButton) {
+      unlockButton.addEventListener("click", tryUnlock);
+    }
+
+    if (togglePassword && lockPassword) {
+      togglePassword.addEventListener("click", () => {
+        const showing = lockPassword.type === "text";
+        lockPassword.type = showing ? "password" : "text";
+        togglePassword.textContent = showing ? "👁" : "🙈";
+      });
+    }
+
+    if (lockPassword) {
+      lockPassword.focus();
+      lockPassword.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          tryUnlock();
+        }
+      });
+    }
+
+    if (runCode) {
+      runCode.addEventListener("click", runMiningCode);
+    }
+
+    if (codeInput) {
+      codeInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          runMiningCode();
+        }
+      });
+    }
+
+    if (hatButton) {
+      hatButton.addEventListener("click", () => toggleShopItem("hat"));
+    }
+
+    if (shirtButton) {
+      shirtButton.addEventListener("click", () => toggleShopItem("shirt"));
+    }
+
+    if (openRoblox) {
+      openRoblox.addEventListener("click", () => launchApp("https://www.roblox.com/", robloxWindow));
+    }
+
+    if (openSpotify) {
+      openSpotify.addEventListener("click", () => launchApp("https://open.spotify.com/", spotifyWindow));
+    }
+
+    if (openDiscord) {
+      openDiscord.addEventListener("click", () => launchApp("https://discord.com/app", discordWindow));
+    }
+
+    if (openTerminal) {
+      openTerminal.addEventListener("click", () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    }
+
+    if (showTux) {
+      showTux.addEventListener("click", () => {
+        document.querySelector(".window-tux").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+
+    closeButtons.forEach((button) => {
+      button.addEventListener("click", () => closeWindow(button.dataset.close));
+    });
+
+    if (scrollUpButton) {
+      scrollUpButton.addEventListener("click", () => scrollPage(-1));
+    }
+
+    if (scrollDownButton) {
+      scrollDownButton.addEventListener("click", () => scrollPage(1));
+    }
+
+    updateGameUi();
+    enablePetDrag();
+    enableMainPenguinDrag();
+  </script>
+</body>
+</html>
